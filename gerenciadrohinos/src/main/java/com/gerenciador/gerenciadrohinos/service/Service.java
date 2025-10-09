@@ -9,8 +9,9 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.http.HttpCredentialsAdapter;
 
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.beans.factory.annotation.Value;
 
-import com.gerenciador.gerenciadrohinos.model.Hino; 
+import com.gerenciador.gerenciadrohinos.model.Model.Hino; 
 
 import java.io.IOException;
 import java.io.InputStream;

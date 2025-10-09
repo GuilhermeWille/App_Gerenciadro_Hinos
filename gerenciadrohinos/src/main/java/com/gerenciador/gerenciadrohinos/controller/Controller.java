@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gerenciador.gerenciadrohinos.service.Service;
-import com.gerenciador.gerenciadrohinos.model.Hino;
+import com.gerenciador.gerenciadrohinos.model.Model.Hino;
 
 import java.io.IOException;
 import java.util.List;
