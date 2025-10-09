@@ -1,0 +1,35 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.5'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.gerenciador'
+version = '0.0.1-SNAPSHOT'
+description = 'gerenciador de hinos '
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation("org.springframework.boot:spring-boot-starter-web")
+	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+	developmentOnly("org.springframework.boot:spring-boot-devtools")
+	testImplementation("org.springframework.boot:spring-boot-starter-test")
+
+	// Google API Client
+	implementation("com.google.api-client:google-api-client:2.7.0")
+	implementation("com.google.oauth-client:google-oauth-client-jetty:1.35.0")
+	implementation("com.google.apis:google-api-services-sheets:v4-rev20230815-2.0.0")
+}
+
+/*tasks.named('test') {
+	useJUnitPlatform()
+}*/
