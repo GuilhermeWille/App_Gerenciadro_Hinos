@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Hinos - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Incluindo o Vue.js 3 via CDN para reatividade -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        /* Cores baseadas na paleta solicitada */
+        :root {
+            --color-primary: #0A1931; /* Azul Marinho Escuro */
+            --color-secondary: #E3E3E3; /* Cinza Claro (Texto) */
+            --color-accent: #6B8E23; /* Verde Camaleão Suave */
+            --color-black: #000000;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-black);
+            color: var(--color-secondary);
+            overflow: hidden; 
+            position: relative;
+        }
+        #app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+        }
+        .main-container {
+            z-index: 10; 
+            position: relative;
+            background-color: var(--color-primary);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+            max-width: 900px; 
+        }
+        .accent-button {
+            background-color: var(--color-accent);
+            transition: background-color 0.3s;
+        }
+        .accent-button:hover {
+            background-color: #556B2F; /* Sombra do Camaleão */
+        }
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        /* --- ESTILOS DA GALÁXIA --- */
+        #galaxy-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-black);
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        .star {
+            position: absolute;
+            background-color: #FFFFFF;
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: move-stars linear infinite, blink 4s infinite alternate;
+        }
+
+        @keyframes move-stars {
+            from { transform: translateY(0); }
+            to { transform: translateY(100vh); }
+        }
+
+        @keyframes blink {
+            0% { opacity: 0.8; }
+            50% { opacity: 0.3; }
+            100% { opacity: 0.8; }
+        }
+
+        .flare {
+            position: absolute;
+            width: 150vw;
+            height: 5px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transform: rotate(-45deg);
+            z-index: 5;
+            animation: sweep 12s infinite cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            pointer-events: none;
+        }
+
+        @keyframes sweep {
+            0% { 
+                opacity: 0;
+                transform: translateX(-100vw) translateY(0) rotate(-45deg); 
+            }
+            10% { opacity: 1; }
+            40% { 
+                opacity: 1; 
+                transform: translateX(100vw) translateY(100vh) rotate(-45deg);
+            }
+            50% { opacity: 0; }
+            100% { 
+                opacity: 0; 
+                transform: translateX(100vw) translateY(100vh) rotate(-45deg);
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen items-center justify-center p-4">
+    
+    <!-- CONTAINER DA GALÁXIA (FUNDO) -->
+    <div id="galaxy-container"></div>
+
+    <!-- PONTO DE MONTAGEM DO VUE -->
+    <div id="app" class="w-full">
+        <main id="app-content" class="main-container w-full p-8 rounded-xl space-y-8">
+            
+            <!-- HEADER / LANDING PAGE -->
+            <header @click="redirectToAuth" class="text-center cursor-pointer">
+                <h1 class="text-4xl font-bold tracking-widest text-white uppercase">
+                    Gerenciador de Hinos
+                </h1>
+                <h2 class="text-xl font-light mt-2 text-gray-400">
+                    Sistema de Louvor - IEAD
+                </h2>
+            </header>
+
+            <!-- MENSAGENS E FEEDBACK -->
+            <div v-if="message.text" :class="[message.isError ? 'bg-red-900' : 'bg-green-900', 'text-white p-2 rounded-lg text-center']" role="alert">
+                {{ message.text }}
+            </div>
+
+            <!-- CONTEÚDO CONDICIONAL (VUE.JS) -->
+
+            <!-- SEÇÃO DE LOGIN/REGISTRO -->
+            <section v-if="!isLoggedIn" id="auth-section">
+                
+                <!-- Botões de Alternância -->
+                <div class="flex justify-center space-x-4 mb-6">
+                    <button @click="authMode = 'login'" 
+                            :class="['py-2 px-4 rounded-lg font-semibold transition duration-150', 
+                                     authMode === 'login' ? 'accent-button' : 'bg-gray-700 hover:bg-gray-600 text-gray-300']">
+                        Login
+                    </button>
+                    <button @click="authMode = 'register'" 
+                            :class="['py-2 px-4 rounded-lg font-semibold transition duration-150', 
+                                     authMode === 'register' ? 'accent-button' : 'bg-gray-700 hover:bg-gray-600 text-gray-300']">
+                        Registrar
+                    </button>
+                </div>
+
+                <!-- FORMULÁRIO DE LOGIN -->
+                <div v-if="authMode === 'login'">
+                    <h3 class="text-2xl font-semibold mb-6 text-center text-white">Entrar no Sistema</h3>
+                    <form @submit.prevent="handleLogin" class="space-y-6">
+                        
+                        <div>
+                            <label for="login-username" class="block text-sm font-medium text-gray-300 mb-1">Usuário</label>
+                            <input v-model="credentials.username" type="text" id="login-username" name="username" required
+                                   class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-accent focus:border-accent">
+                        </div>
+                        
+                        <div>
+                            <label for="login-password" class="block text-sm font-medium text-gray-300 mb-1">Senha</label>
+                            <input v-model="credentials.password" type="password" id="login-password" name="password" required
+                                   class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-accent focus:border-accent">
+                        </div>
+                        
+                        <button type="submit" :disabled="isLoading"
+                                class="accent-button w-full py-3 rounded-lg text-lg font-semibold text-white shadow-md disabled:opacity-50">
+                            {{ isLoading ? 'Verificando...' : 'Fazer Login' }}
+                        </button>
+                    </form>
+                </div>
+
+                <!-- FORMULÁRIO DE REGISTRO -->
+                <div v-if="authMode === 'register'">
+                    <h3 class="text-2xl font-semibold mb-6 text-center text-white">Criar Nova Conta</h3>
+                    <form @submit.prevent="handleRegister" class="space-y-6">
+                        
+                        <div>
+                            <label for="reg-username" class="block text-sm font-medium text-gray-300 mb-1">Novo Usuário</label>
+                            <input v-model="registerData.username" type="text" id="reg-username" name="username" required
+                                   class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-accent focus:border-accent">
+                        </div>
+                        
+                        <div>
+                            <label for="reg-password" class="block text-sm font-medium text-gray-300 mb-1">Nova Senha</label>
+                            <input v-model="registerData.password" type="password" id="reg-password" name="password" required
+                                   class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-accent focus:border-accent">
+                        </div>
+                        
+                        <button type="submit" :disabled="isLoading"
+                                class="accent-button w-full py-3 rounded-lg text-lg font-semibold text-white shadow-md disabled:opacity-50">
+                            {{ isLoading ? 'Processando...' : 'Registrar' }}
+                        </button>
+                    </form>
+                    <p class="text-center text-sm text-gray-400 mt-4">
+                        *O registro de novos usuários requer que o endpoint POST /registro esteja ativo no Backend Java.
+                    </p>
+                </div>
+            </section>
+
+            <!-- ÁREA DA TABELA (Página Protegida) -->
+            <section v-if="isLoggedIn" id="table-area">
+                <h3 class="text-2xl font-semibold mb-4 text-center text-white">Catálogo de Hinos - {{ username }}</h3>
+                
+                <div class="flex justify-end mb-4">
+                     <button @click="handleLogout" class="accent-button py-2 px-4 rounded-lg text-sm font-semibold text-white">
+                        Sair
+                    </button>
+                </div>
+
+                <!-- Tabela de Hinos -->
+                <div class="table-wrapper rounded-xl overflow-hidden border border-gray-700">
+                    <table class="min-w-full divide-y divide-gray-700 text-sm">
+                        <thead class="bg-gray-700 text-gray-300 uppercase tracking-wider">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left">Título</th>
+                                <th scope="col" class="px-6 py-3 text-left">Artista</th>
+                                <th scope="col" class="px-6 py-3 text-left">Duração</th>
+                                <th scope="col" class="px-6 py-3 text-center">Link</th>
+                                <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-800 bg-gray-900 text-gray-200">
+                            <!-- Renderiza a lista de hinos do backend -->
+                            <tr v-if="isLoadingHinos">
+                                <td colspan="5" class="px-6 py-4 text-center text-gray-400">Carregando hinos...</td>
+                            </tr>
+                            <tr v-else v-for="hino in hinos" :key="hino.titulo" class="hover:bg-gray-800 transition duration-150">
+                                <td class="px-6 py-4 font-medium">{{ hino.titulo }}</td>
+                                <td class="px-6 py-4">{{ hino.artista }}</td>
+                                <td class="px-6 py-4">{{ hino.duracao }}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <a :href="hino.link" target="_blank" class="text-accent hover:underline">Ver</a>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <!-- Botão de Edição (A ser implementado) -->
+                                    <button @click="editHino(hino)" class="text-indigo-400 hover:text-indigo-300 font-semibold text-xs">
+                                        Editar
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="!isLoadingHinos && hinos.length === 0">
+                                <td colspan="5" class="px-6 py-4 text-center text-gray-400">Nenhum hino encontrado.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- RODAPÉ -->
+        <footer @click="redirectToAuth" class="mt-8 text-center text-gray-600 w-full cursor-pointer">
+            Autor: Guilherme Wille
+        </footer>
+    </div>
+
+    <script>
+        // LÓGICA VUE E JAVASCRIPT
+        const API_BASE_URL = 'http://localhost:8080';
+        const PROTECTED_ENDPOINT = '/musicas/todos'; 
+        
+        // --- FUNÇÕES DE ANIMAÇÃO VANILLA JS ---
+        function createStars(count) {
+            const galaxyContainer = document.getElementById('galaxy-container');
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                const size = Math.random() * 2 + 0.5;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.opacity = Math.random() * 0.8 + 0.2;
+                star.style.left = `${Math.random() * 100}vw`;
+                star.style.top = `${Math.random() * 100 - 100}vh`; 
+                const duration = Math.random() * 20 + 10;
+                star.style.animationDuration = `${duration}s, 4s`;
+                star.style.animationDelay = `-${Math.random() * duration}s, 0s`;
+                galaxyContainer.appendChild(star);
+            }
+        }
+
+        function createFlare() {
+             const galaxyContainer = document.getElementById('galaxy-container');
+             const flare = document.createElement('div');
+             flare.classList.add('flare');
+             galaxyContainer.appendChild(flare);
+        }
+
+        // --- APLICAÇÃO VUE ---
+        const App = {
+            data() {
+                return {
+                    isLoggedIn: false,
+                    username: '',
+                    // Alterna entre 'login' e 'register'
+                    authMode: 'login', 
+                    credentials: {
+                        username: '',
+                        password: ''
+                    },
+                    registerData: {
+                        username: '',
+                        password: ''
+                    },
+                    isLoading: false,
+                    isLoadingHinos: false, 
+                    hinos: [], 
+                    message: {
+                        text: '',
+                        isError: false
+                    }
+                };
+            },
+            mounted() {
+                // Inicia as animações de fundo
+                createStars(50);
+                createFlare();
+                
+                // Verifica o estado de login ao iniciar
+                this.checkLoginState();
+            },
+            methods: {
+                showMessage(text, isError = false) {
+                    this.message.text = text;
+                    this.message.isError = isError;
+                },
+                
+                async fetchHinos() {
+                    this.isLoadingHinos = true;
+                    this.hinos = []; 
+
+                    const base64Credentials = localStorage.getItem('userCredentials');
+                    if (!base64Credentials) {
+                        this.showMessage('Credenciais ausentes. Por favor, faça login novamente.', true);
+                        this.handleLogout();
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`${API_BASE_URL}${PROTECTED_ENDPOINT}`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Basic ${base64Credentials}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.hinos = data; 
+                            this.showMessage(`Dados de ${this.hinos.length} hinos carregados com sucesso.`, false);
+                        } else if (response.status === 401 || response.status === 403) {
+                            this.showMessage('Sessão expirada ou não autorizada. Reconectando...', true);
+                            this.handleLogout();
+                        } else {
+                            this.showMessage(`Erro ao carregar hinos: ${response.status}`, true);
+                        }
+
+                    } catch (error) {
+                        console.error('Erro ao buscar hinos:', error);
+                        this.showMessage('Erro de rede ao conectar ao Backend.', true);
+                    } finally {
+                        this.isLoadingHinos = false;
+                    }
+                },
+
+                async handleLogin() {
+                    this.isLoading = true;
+                    this.message.text = 'Tentando conectar...';
+
+                    const base64Credentials = btoa(`${this.credentials.username}:${this.credentials.password}`);
+
+                    try {
+                        const response = await fetch(`${API_BASE_URL}${PROTECTED_ENDPOINT}`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Basic ${base64Credentials}`
+                            }
+                        });
+
+                        if (response.ok) {
+                            this.isLoggedIn = true;
+                            this.username = this.credentials.username;
+                            
+                            localStorage.setItem('userCredentials', base64Credentials);
+                            localStorage.setItem('username', this.username);
+
+                            this.showMessage(`Login bem-sucedido! Bem-vindo(a), ${this.username}.`, false);
+                            this.credentials.password = '';
+                            
+                            this.fetchHinos(); 
+
+                        } else if (response.status === 401 || response.status === 403) {
+                            this.showMessage('Falha no login. Verifique seu usuário/senha (admin/123456).', true);
+                        } else {
+                            this.showMessage(`Erro de servidor: ${response.status}`, true);
+                        }
+                    } catch (error) {
+                        console.error('Erro de rede:', error);
+                        this.showMessage('Erro ao conectar ao servidor. Verifique se o backend Java está rodando.', true);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+                
+                handleRegister() {
+                    // Lógica para registrar um novo usuário no Backend Java virá aqui
+                    this.showMessage("Função de Registro ainda não implementada no Backend Java. Por favor, faça login.", true);
+                    this.authMode = 'login'; // Volta para a tela de login
+                    this.registerData.password = ''; // Limpa a senha de registro
+                },
+
+                handleLogout() {
+                    this.isLoggedIn = false;
+                    this.username = '';
+                    this.hinos = []; 
+                    localStorage.removeItem('userCredentials');
+                    localStorage.removeItem('username');
+                    this.showMessage('Você foi desconectado.', false);
+                    this.credentials.username = '';
+                    this.credentials.password = '';
+                    this.authMode = 'login'; // Garante que a próxima tela seja o login
+                },
+                
+                async verifyStoredCredentials(base64Credentials, username) {
+                     try {
+                        const response = await fetch(`${API_BASE_URL}${PROTECTED_ENDPOINT}`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Basic ${base64Credentials}`
+                            }
+                        });
+
+                        if (response.ok) {
+                            this.isLoggedIn = true;
+                            this.username = username;
+                            this.fetchHinos(); 
+                        } else {
+                            this.handleLogout();
+                        }
+                    } catch (error) {
+                        console.error('Erro de rede durante a reautenticação:', error);
+                        this.handleLogout();
+                    }
+                },
+                
+                checkLoginState() {
+                    const storedCredentials = localStorage.getItem('userCredentials');
+                    const storedUsername = localStorage.getItem('username');
+
+                    if (storedCredentials && storedUsername) {
+                        this.verifyStoredCredentials(storedCredentials, storedUsername);
+                    }
+                },
+                
+                editHino(hino) {
+                    this.showMessage(`Preparando para editar o hino: ${hino.titulo}`, false);
+                    // Lógica para abrir modal de edição virá aqui
+                },
+
+                redirectToAuth() {
+                    // Clique no Header/Footer
+                    if (this.isLoggedIn) {
+                        this.showMessage('Recarregando a lista de hinos...', false);
+                        this.fetchHinos();
+                    } else {
+                        // Se não estiver logado, alterna para Login ou Registro
+                        this.authMode = 'login';
+                        this.showMessage('Por favor, faça Login ou Registro.', false);
+                    }
+                }
+            }
+        };
+
+        Vue.createApp(App).mount('#app');
+    </script>
+
+</body>
+</html>

@@ -1,7 +1,11 @@
 package com.gerenciador.gerenciadrohinos.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity; 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable; 
+import org.springframework.web.bind.annotation.PostMapping; 
+import org.springframework.web.bind.annotation.RequestBody; 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +43,21 @@ public class Controller {
     @GetMapping("/todos")
     public List<Hino> listarTodasAsMusicas() throws IOException{
         return service.getAllHinos();
+    }
+
+    /**
+     * Endpoint POST para adicionar um novo hino à planilha.
+     * Esta rota requer a ROLE_EDITOR (usuário logado como 'admin').
+     * * Rota: POST /musicas
+     * @param novoHino O objeto Hino enviado no corpo da requisição (JSON).
+     * @return O hino criado com status HTTP 201 (Created).
+     * @throws IOException Se a escrita na planilha falhar.
+     */
+    @PostMapping
+    public ResponseEntity<Hino> adicionarNovoHino(@RequestBody Hino novoHino) throws IOException {
+        Hino hinoSalvo = service.appendHino(novoHino);
+        // Retorna o hino salvo com status HTTP 201 CREATED
+        return new ResponseEntity<>(hinoSalvo, HttpStatus.CREATED); 
     }
 
      /**

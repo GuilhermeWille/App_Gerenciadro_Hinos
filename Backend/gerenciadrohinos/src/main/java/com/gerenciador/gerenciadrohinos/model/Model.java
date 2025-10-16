@@ -16,6 +16,6 @@ public class Model {
         //Coluna D
         String link,
         //Coluna E
-        String aidionadoPor
+        String adicionadoPor
         ){}
 }

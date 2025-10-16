@@ -4,32 +4,38 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.sheets.v4.Sheets;
+import com.google.api.services.sheets.v4.model.ValueRange; // Import para escrita
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.auth.oauth2.GoogleCredentials;
+
+import jakarta.annotation.PostConstruct;
+
 import com.google.auth.http.HttpCredentialsAdapter;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.gerenciador.gerenciadrohinos.model.Model.Hino; 
+import com.google.api.services.sheets.v4.model.AppendValuesResponse; // Import para resposta da escrita
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
 /**
  * Serviço principal da aplicação, responsável por toda a comunicação
  * e interação com a Google Sheets API.
- * * <p>Esta classe gerencia a autenticação e fornece métodos para leitura/escrita
+ * <p>Esta classe gerencia a autenticação e fornece métodos para leitura/escrita
  * de dados da planilha de hinos. É um componente Singleton gerenciado pelo Spring.
- * * @author Guilherme Wille
+ *
+ * @author Guilherme Wille
  * @version 1.0.0
  * @since 2025-10-08
  */
-
 @org.springframework.stereotype.Service
 public class Service {
 
@@ -38,7 +44,7 @@ public class Service {
     private String spreadsheetId;
 
     // Injeta o nome da aba (pode ser usado como valor padrão)
-    @Value("${google.sheets.tab-name:Planilha1}") // O valor :Planilha1 é um fallback
+    @Value("${google.sheets.tab-name:Planilha1}") 
     private String defaultSheetName;
 
     // Constantes e Configurações
@@ -50,17 +56,14 @@ public class Service {
 
     private Sheets sheetsService;
     
-    /**
-     * Construtor do Service. Responsável por inicializar o objeto 'sheetsService' (API client).
-     * * <p>Realiza os seguintes passos críticos:
-     * 1. Carrega o arquivo 'credentials.json' do classpath.
-     * 2. Cria as credenciais com o escopo 'SPREADSHEETS'.
-     * 3. Constrói e inicializa o objeto Sheets com o transporte HTTP confiável.
-     * * @throws IOException Se o arquivo de credenciais não for encontrado ou houver erro de leitura.
-     * @throws GeneralSecurityException Se houver um erro no estabelecimento de transporte HTTP seguro.
-     */
+    // Construtor vazio. A inicialização real ocorre no @PostConstruct.
+    public Service() {}
 
-    public Service() throws IOException, GeneralSecurityException {
+    /**
+     * Método de inicialização da API, executado após a injeção de todos os beans (@Value).
+     */
+    @PostConstruct
+    public void init() throws IOException, GeneralSecurityException {
         ClassPathResource resource = new ClassPathResource(CREDENTIAL_PATH);
 
         try (InputStream in = resource.getInputStream()){
@@ -73,73 +76,59 @@ public class Service {
                     new HttpCredentialsAdapter(credentials))
                     .setApplicationName(APPLICATION_NAME)
                     .build();
+            System.out.println("-> Google Sheets API client inicializado com sucesso.");
         }
     }
 
-     /**
-     * Realiza a leitura dos dados de uma planilha Google Sheets específica.
-     * * <p>Usa a notação A1 (e.g., "Planilha1!A2:E") para especificar o conjunto de células a ser lido.
-     * @param spreadsheetId O ID da planilha (obtido da URL do Google Sheets).
-     * @param range A string de notação A1 que define a área de leitura.
-     * @return Uma lista de listas de objetos (cada lista interna é uma linha).
-     * @throws IOException Se houver falha na comunicação com a API ou erro de autorização.
+    // --- MÉTODOS DE LEITURA (GET) ---
+
+    /**
+     * Realiza a leitura dos dados da planilha e mapeia para List<Hino>.
      */
-
     public List<Hino> getAllHinos() throws IOException {
-    String range = defaultSheetName + "!A2:E"; // Range A1: Planilha1!A2:E
-
-        // 1. Busca os dados brutos da API
+        String range = defaultSheetName + "!A2:E";
+        // ... (lógica de leitura e mapeamento, que estava correta) ...
+        
         List<List<Object>> valoresBrutos = sheetsService.spreadsheets().values()
             .get(this.spreadsheetId, range) 
             .execute()
             .getValues();
             
         if (valoresBrutos == null) {
-            return List.of(); // Retorna lista vazia se não houver dados
+            return List.of();
         }
 
         // 2. Mapeamento: Converte a lista bruta (List<List<Object>>) para List<Hino>
         return valoresBrutos.stream()
             .map(linha -> {
-                // Garante que haja dados suficientes na linha para evitar IndexOutOfBounds
                 if (linha.size() >= 5) {
-                    // Cria um objeto Hino, mapeando cada índice da lista bruta
                     return new Hino(
-                        // A ordem é Título(0), Artista(1), Duração(2), Link(3), Integrantes(4)
-                        linha.get(0).toString(), // Titulo
-                        linha.get(1).toString(), // Artista
-                        linha.get(2).toString(), // Duracao
-                        linha.get(3).toString(), // Link
-                        linha.get(4).toString()  // AdicionadoPor
+                        linha.get(0).toString(), 
+                        linha.get(1).toString(), 
+                        linha.get(2).toString(), 
+                        linha.get(3).toString(), 
+                        linha.get(4).toString()
                     );
                 }
-            return null; // Retorna nulo para linhas incompletas
-        })
-            .filter(hino -> hino != null) // Remove quaisquer entradas nulas geradas
+                return null;
+            })
+            .filter(hino -> hino != null)
             .collect(Collectors.toList());
     }
-   
     
-   /**
+    /**
      * Busca hinos por um nome de artista específico, aplicando a lógica de filtro
      * em memória (após a leitura da planilha).
-     * * @param nomeArtista O nome exato do artista a ser filtrado.
-     * @return Uma lista de objetos Hino onde o artista corresponde ao nome fornecido.
-     * @throws IOException Se a comunicação com a API falhar.
      */
     public List<Hino> getMusicasPorArtista(String nomeArtista) throws IOException{
-        // 1. Pega todos os dados da planilha. Agora é uma List<Hino>!
         List<Hino> todosOsHinos = getAllHinos();
 
         if(todosOsHinos == null || nomeArtista == null){
             return List.of();
         }
 
-        // 2. Filtra a lista usando Java Streams
-        // Não precisamos mais checar o índice. Usamos o nome do campo!
         List<Hino> hinosFiltrados = todosOsHinos.stream()
             .filter(hino -> {
-                // Compara o campo 'artista' do objeto Hino com o nomeArtista (ignorando maiúsculas/minúsculas)
                 return hino.artista() != null && 
                     hino.artista().trim().equalsIgnoreCase(nomeArtista.trim());
             })
@@ -147,13 +136,48 @@ public class Service {
 
         return hinosFiltrados;
     }
+
+    // --- MÉTODO DE ESCRITA (POST) ---
+
+    /**
+     * Adiciona um novo hino à planilha mestre.
+     * <p>Usa a operação 'append' para inserir uma nova linha no final da planilha.
+     * @param novoHino O objeto Hino a ser persistido.
+     * @return O objeto Hino persistido (para confirmação).
+     * @throws IOException Se a escrita na planilha falhar.
+     */
+    public Hino appendHino(Hino novoHino) throws IOException {
+        String range = defaultSheetName + "!A:E"; // Range completo para escrita (adiciona no final)
+
+        // 1. Converte o objeto Hino em uma lista de objetos (formato Sheets API)
+        List<Object> rowData = Arrays.asList(
+            novoHino.titulo(),
+            novoHino.artista(),
+            novoHino.duracao(),
+            novoHino.link(),
+            novoHino.adicionadoPor()
+        );
+        List<List<Object>> values = Arrays.asList(rowData);
+
+        // 2. Define o corpo da requisição
+        ValueRange body = new ValueRange().setValues(values);
+
+        // 3. Executa a requisição de APPEND (adiciona nova linha)
+        AppendValuesResponse result = this.sheetsService.spreadsheets().values().append(
+            spreadsheetId, 
+            range, 
+            body
+        )
+        .setValueInputOption("USER_ENTERED") // Trata valores como se fossem digitados manualmente
+        .execute();
+
+        // Em uma aplicação real, você faria uma nova leitura, mas aqui retornamos o objeto original
+        return novoHino;
+    }
+
     /**
      * Retorna a instância do cliente da Google Sheets API.
-     * * <p>Pode ser usado por outros métodos de serviço para operações mais complexas
-     * que não estão diretamente encapsuladas neste serviço (e.g., operações batch).
-     * * @return O objeto Sheets inicializado e autenticado.
      */
-
     public Sheets getSheetsService() {
         return this.sheetsService;
     }
